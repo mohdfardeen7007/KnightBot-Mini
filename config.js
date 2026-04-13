@@ -5,18 +5,18 @@
 module.exports = {
     // Bot Owner Configuration
     ownerNumber: ['91xxxxxxxxxxx','919517641203'], // Add your number without + or spaces (e.g., 919876543210)
-    ownerName: ['Knight Bot Mini', 'Professor'], // Owner names corresponding to ownerNumber array
+    ownerName: ['𝝖m︩︪፝֟b︩︪𐐲፝֟𖹭︩︪𑂘e︪︩፝֟', '𝝖m︩︪፝֟b︩︪𐐲፝֟𖹭︩︪𑂘e︪︩፝֟'], // Owner names corresponding to ownerNumber array
     
     // Bot Configuration
-    botName: 'Knight Bot Mini',
+    botName: '𝝖m︩︪፝֟b︩︪𐐲፝֟𖹭︩︪𑂘e︪︩፝֟',
     prefix: '.',
     sessionName: 'session',
-    sessionID: process.env.SESSION_ID || 'KnightBot!H4sIAAAAAAAAA5VUXY+iSBT9L/WqGQEF0aSTRUBFERX83uxDSRVQ8mlVAU1P/O8b7OnpySY728tTcevm3nPPPae+gywnDC9xA8bfQUFJBTluj7wpMBiDSRkEmIIuQJBDMAaCA7myjPtwcDqfbuUd2avq7F1WK1fnzv6ItOxEgnnvlJjbF/DogqK8JsT/TcFqI+BM7sXUcoXj8U2qdpF8XMeN4O6q4Sy+T81TMbVHfjkVXsCjrQgJJVloFhFOMYXJEjcbSOjX4HuTYB7ITaSutwc/OzZWWC5M+8bd08Y52r2eGfMsEgaKKuVfgw8pCVLTOSArX9jKdULE3eSmoI52dOKRdG76xPEr16u8/vYdPiNhhpGFcMYJb77Mu2KFQWWspitabuTtES4tfbA8uHcB9WAuKWKsa6xT8hvK/K8BZ25qrtJhWWZmgTqCa3XQTuOvfc3wX+mViLeZhqlhvZqv2q/AN/RDK/H/4V01OuvcWmAnVqdkflpQ3jmw86h5q+5LV8/8wrtut8HEXs/qL/I+OxumikrjFmebe62eN+Xxoo5udrm/dSJEOlXvgpNQqaXwEz7kJf0dysoZ5BXdNLticcG6dNIdzbZ29FAoNlofc9EW9elmKCxPmS3UxVxPVjfvst8Lt31IF5LDxNmuzrf6yFwql7qR1ru34dskfHlOFOPGQmAsPrqA4pAwTiEnefaMCUoXQFR52KeYP+kFF+EuMJMrb87dgLGZGvVrc7h14jOa6bOzcllUfui6JJnk8QvogoLmPmYMozlhPKfNCjMGQ8zA+M+/uiDDr/x9cW27vtgFAaGM77OySHKIPrb6cQl9Py8z7jWZr7cHTMFY+AxjzkkWspbHMoPUj0iF9QhyBsYBTBj+OSGmGIExpyX+6Vo9Ry3x6uliqP3zCXRB+lwIQWAMRqIqSkN1KI+G0lgd/cG+1W1ZWBTfMsxBFyTPNHEgC4I0HPVVRRoM2sQ2/vgJsK2HMIckYWAM9IUedZgwMRclqdXBbKaZoaaHGvgc6EMZ78zb+xo311Mq41B1THItLmTFJDK36YHIh77B9EyeypN6tn0y/88irYwMT4vEw2KaFBqyFoM+tMymDKLK2xShv1qHEF8Hpp07uBzul/MjOlrpXbhjcb005oV5sJPpnK8bymQ4mbG7t+vtVGP70nZDuCI+/rWZ05zvs/wqBNM4tBdNM5p722YdGeuBNeLJvpr13ONIprWd+USIAu/VVy7Odj7i1T49zyzlerfVlXzx1shVlbDwN5HJjPpds0/PJD/eKvJUU7uq9jcg+Gn9DLYL/O/VvQNvFSY8ur/U+PGY/IshJ564mrNUlMtTvjFcK1WO55vt5FGjiOfygOqhVnRcvPUn8QI8Hn91QZFAHuQ0bZ+IDNGcINAFNC9byVpZkP+mmT6xrMk2tNrJE8i49mmDHUkx4zAtwFgcDmVpJA2F/nvWhubFHLIIjEE/TcSb12q60YrC45B/uApo7besL+DxN5FHu6pxBwAA',
+    sessionID: process.env.SESSION_ID || 'KnightBot!H4sIAAAAAAAAA5VUza7aRhR+lWq2oOBfMEhXim0MGDAGDFxwlcXYHpvBv3c8tjERj1ApmyrqIuq6XXaVJ+m+T5A8QmVubnIXbXq7scZn7O985/vOOW9BkuIczVANBm9BRnAJKWqOtM4QGACl8H1EQBt4kEIwAJyiHznf5KmL2dbBF2ufJMEQz+bVsDis+BBN5mnYPevOXroD1zbICifC7ncAq92pC63eJTxpeaTFZCqRZWeWWPsJdFrhGdHtAz+b7wI4ZO7AtUGEmOAk0LIjihGB0QzVS4jJy+jfy0dzsaxm9BBVs4ej6Hhxmo1Zo3vvSWjRt1dY6fmjM5/x1cvox5MA2RtzwgYpz2itM9+6L+1EVYfS2oTMw0hfz3S28IfztfBIP8dBgjzdQwnFtH6x7l2joz5IO8cSojW3IEN7oWpDTiv9WeX1+OPoXlyXiRA49y8lntu2qBRjo+J1qJiUiBe2jJw1Ws7IcVZPpOgiqWmhLSAOnxNfkqdeCf+P7qG+0d3jsNyOumlStjpVWoVM5dmXCFpbKT71gvU6XmNJ3OYvo7/RZNtFS9UcZ2V9EKLhWI5qwyj1UdHCmuBU04l83jF1pDyjD2lBvsfyVLbWkFWmwUg2JtvzjtfTRFY302Grsx1b+nws93jEW+O9Qs3l3Flo1tpxTGyoray/6x9HWp4tFhN9WOWd1lnWdzibJqfV3a2iENW6BwbstQ0ICnBOCaQ4TW4xTmwD6JUWcgmiN3mBOx+rRtfOWc1bYOG8UuBpzy9SxxeSuY5cZrrFmsBG+cp070AbZCR1UZ4jb4JzmpLaQHkOA5SDwY9v2iBBZ/poXJOOZ9vAxySn26TIohR6T64+XULXTYuEWnXiqs0BETBgvoURpTgJ8kbHIoHEPeISqUdIczDwYZSjrxUigjwwoKRAX6dWTb1G+Huh1x/Jah+0QXwzBHtgAERJ4Lq82OfELjfgX+evqgYVZtmrBFHQBglsPgafP7z/5fO7d3/89dOHP39Ft+enj79/+vjb8/MPnz+8/zlt/opu2JwoMFxXFESB64q93oB/3cSvX6tqSHiIQhzlYADUBdL7NFC0Zb3vG8J4LGuBrAYy+KbCUzs92pUpqiBZvdVBPPVnZ1dd67M6dDqLzE0UU+1zB4VuJxY0Rpft3T+AgAHwPA/akq3a3nqy53zEddQRtlZHI4zgyiPGVputoFOSw5DQOCoNtxVsRnVBvIedcpKIFHZsrOw7G43zVx1m2TrMmZES3DXZPFRiFz1Pdt6p/bCyeyzlNmbhBBFHSin0ElUjPO24YbB2aXfZ5bhjcNpLWjgdp8LcZCI2FsvktEku9bBIL7w8jDWB3k9aJlu1guqx0W+DFn1ZcPjWgo2/zauP0W1ffDHyv/x+5N10JXNtP4P4soD+ZYgVuFoVS61gxuahY+V7ObTUPBt3LnA/rTZB6cWys1OY+KS4LLhe37RBFkHqpyRutmLsQNAGJC2aHtcTP/1OJlU2dFUOFk3VEcyp/G1uNjhGOYVxBgZsr9dl+gLH9K9/A2tFSA9tBwAA',
     newsletterJid: '120363161513685998@newsletter', // Newsletter JID for menu forwarding
     updateZipUrl: 'https://github.com/mruniquehacker/KnightBot-Mini/archive/refs/heads/main.zip', // URL to latest code zip for .update command
     
     // Sticker Configuration
-    packname: 'Knight Bot Mini',
+    packname: '𝝖m︩︪፝֟b︩︪𐐲፝֟𖹭︩︪𑂘e︪︩፝֟',
     
     // Bot Behavior
     selfMode: false, // Private mode - only owner can use commands
