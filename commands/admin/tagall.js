@@ -1,36 +1,40 @@
-const isAdmin = require('../lib/isAdmin');  
+/**
 
-async function tagAllCommand(sock, chatId, senderId, message) {
+* Tag All Command - Mention all group members
+  */
+
+module.exports = {
+name: 'tagall',
+aliases: ['mentionall', 'everyone'],
+category: 'admin',
+description: 'Tag all group members',
+usage: '.tagall <message>',
+groupOnly: true,
+adminOnly: true,
+botAdminNeeded: true,
+
+async execute(sock, msg, args, extra) {
     try {
-        const { isBotAdmin } = await isAdmin(sock, chatId, senderId);
+        const customMessage = args.join(' ');
+        const participants = extra.groupMetadata.participants.map(p => p.id);
 
-        // ❌ Only bot admin check (user admin removed)
-        if (!isBotAdmin) {
-            await sock.sendMessage(chatId, { 
-                text: '❌ Please make the bot an admin first.' 
-            }, { quoted: message });
-            return;
-        }
-
-        // Get group metadata
-        const groupMetadata = await sock.groupMetadata(chatId);
-        const participants = groupMetadata.participants.map(p => p.id);
-        const groupName = groupMetadata.subject || 'Group';
+        const groupName = extra.groupMetadata.subject || 'Group';
         const memberCount = participants.length;
 
-        if (!participants || participants.length === 0) {
-            await sock.sendMessage(chatId, { 
-                text: 'No participants found in the group.' 
-            });
-            return;
+        if (!participants.length) {
+            return extra.reply('❌ No participants found in the group.');
         }
 
-        // Stylish message
         let text = `━━━━━━━━━━━━━━━\n`;
         text += `🌴 *Attention Everyone!* ☀️\n`;
         text += `━━━━━━━━━━━━━━━\n\n`;
         text += `✦🎯✦ *Group:* ${groupName}\n`;
         text += `✦🗣️✦ *Members:* ${memberCount}\n\n`;
+
+        if (customMessage) {
+            text += `💬 *Message:*\n${customMessage}\n\n`;
+        }
+
         text += `🌊 *Calling All Members...*\n\n`;
 
         participants.forEach((participant, index) => {
@@ -40,18 +44,19 @@ async function tagAllCommand(sock, chatId, senderId, message) {
         text += `\n━━━━━━━━━━━━━━━\n`;
         text += `🌞 *Successfully tagged all members!* 💪`;
 
-        // Send message
-        await sock.sendMessage(chatId, {
-            text,
-            mentions: participants
-        }, { quoted: message });
+        await sock.sendMessage(
+            extra.from,
+            {
+                text,
+                mentions: participants
+            },
+            { quoted: msg }
+        );
 
     } catch (error) {
-        console.error('Error in tagall command:', error);
-        await sock.sendMessage(chatId, { 
-            text: `❌ Failed to tag all members.\n${error.message}` 
-        });
+        console.error('TagAll command error:', error);
+        await extra.reply(`❌ Error: ${error.message}`);
     }
 }
 
-module.exports = tagAllCommand;
+};
