@@ -77,21 +77,52 @@ function resolveTubepullCommand() {
   return { command: 'tubepull', prefixArgs: [] };
 }
 
-function runTubepull(url, outputDir, fileBase, { stripProxy = false } = {}) {
+function resolveCookiesFile() {
+  const candidates = [
+    process.env.YT_COOKIES_FILE,
+    process.env.TUBE_PULL_COOKIES,
+    path.resolve(process.cwd(), 'cookies.txt'),
+    path.resolve(process.cwd(), 'session', 'cookies.txt'),
+    '/root/cookies.txt',
+  ].filter(Boolean);
+
+  for (const file of candidates) {
+    try {
+      if (fs.existsSync(file) && fs.statSync(file).isFile()) {
+        return file;
+      }
+    } catch {}
+  }
+
+  return null;
+}
+
+function buildTubepullArgs(url, outputDir, fileBase, cookiesFile) {
+  const args = [
+    url,
+    '--audio',
+    '--format',
+    'mp3',
+    '--output',
+    outputDir,
+    '--filename',
+    fileBase,
+    '--yes',
+  ];
+
+  if (cookiesFile) {
+    args.push('--cookies', cookiesFile);
+  }
+
+  return args;
+}
+
+function runTubepull(url, outputDir, fileBase, { stripProxy = false, cookiesFile = null } = {}) {
   return new Promise((resolve, reject) => {
     const execInfo = resolveTubepullCommand();
-
     const args = [
       ...execInfo.prefixArgs,
-      url,
-      '--audio',
-      '--format',
-      'mp3',
-      '--output',
-      outputDir,
-      '--filename',
-      fileBase,
-      '--yes',
+      ...buildTubepullArgs(url, outputDir, fileBase, cookiesFile),
     ];
 
     const child = spawn(execInfo.command, args, {
@@ -112,20 +143,33 @@ function runTubepull(url, outputDir, fileBase, { stripProxy = false } = {}) {
 
     child.on('error', reject);
     child.on('close', (code) => {
-      if (code === 0) resolve({ stdout, stderr, stripProxy });
+      if (code === 0) resolve({ stdout, stderr, stripProxy, cookiesFile });
       else reject(createCliError(code, stderr, stdout));
     });
   });
 }
 
 async function downloadWithFallback(url, outputDir, fileBase) {
+  const cookiesFile = resolveCookiesFile();
+
   try {
-    return await runTubepull(url, outputDir, fileBase);
+    return await runTubepull(url, outputDir, fileBase, { cookiesFile });
   } catch (error) {
     const message = `${error?.message || ''}\n${error?.stderr || ''}`;
+
     if (/Failed to parse URL from \[object Request\]/i.test(message)) {
-      return runTubepull(url, outputDir, fileBase, { stripProxy: true });
+      return runTubepull(url, outputDir, fileBase, {
+        stripProxy: true,
+        cookiesFile,
+      });
     }
+
+    if (/Sign in to confirm you're not a bot/i.test(message) && !cookiesFile) {
+      throw new Error(
+        'YouTube blocked this network. Add cookies.txt and set YT_COOKIES_FILE, then try again.'
+      );
+    }
+
     throw error;
   }
 }
@@ -182,7 +226,15 @@ function buildUserError(error) {
   const message = error?.message || 'Unknown error';
 
   if (/ENOENT|not found/i.test(message) && /tubepull/i.test(message)) {
-    return '❌ `tubepull` install nahi hai ya server par dependencies proper install nahi hui. `npm install` ya `npm install tubepull` chalao.';
+    return '❌ `tubepull` install nahi hai. `npm install tubepull` chalao.';
+  }
+
+  if (/YouTube blocked this network/i.test(message)) {
+    return '❌ YouTube ne server IP ko challenge kiya hai. `cookies.txt` add karo aur `YT_COOKIES_FILE` set karo.';
+  }
+
+  if (/Sign in to confirm you're not a bot/i.test(message)) {
+    return '❌ YouTube bot challenge aa raha hai. `cookies.txt` use karo ya dusra network/VPS try karo.';
   }
 
   if (/node.*22\.12|requires >= 22\.12/i.test(message)) {
@@ -190,7 +242,7 @@ function buildUserError(error) {
   }
 
   if (/Failed to parse URL from \[object Request\]/i.test(message)) {
-    return '❌ `tubepull` proxy env ke saath fail ho raha hai. Server par proxy config check karo ya package update karo.';
+    return '❌ `tubepull` proxy env ke saath fail ho raha hai. Proxy config check karo ya package update karo.';
   }
 
   if (/fetch failed|unreachable|Network request failed/i.test(message)) {
@@ -254,6 +306,7 @@ module.exports = {
       }
 
       fs.mkdirSync(outputDir, { recursive: true });
+
       const result = await downloadWithFallback(target.url, outputDir, `play2-${stamp}`);
       const audioPath = pickDownloadedFile(outputDir);
       const audioBuffer = fs.readFileSync(audioPath);
@@ -267,7 +320,13 @@ module.exports = {
       }, { quoted: msg });
 
       if (result.stripProxy) {
-        await reply('ℹ️ Proxy env hata kar fallback use hua. Agar server proxy ke peeche hai to `tubepull` update ya custom network setup consider karo.');
+        await reply('ℹ️ Proxy env hata kar fallback use hua.');
+      }
+
+      if (result.cookiesFile) {
+        await reply(`ℹ️ Cookies file use hui: ${result.cookiesFile}`);
+      } else {
+        await reply('ℹ️ Agar YouTube bot challenge aaye to `cookies.txt` add karke `YT_COOKIES_FILE` set karo.');
       }
 
       await react('✅');
