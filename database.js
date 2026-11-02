@@ -59,7 +59,12 @@ const getGroupSettings = (groupId) => {
   if (!groups[groupId]) {
     groups[groupId] = { ...config.defaultGroupSettings };
     writeDB(GROUPS_DB, groups);
-  }
+  }  else {
+    const mergedSettings = { ...config.defaultGroupSettings, ...groups[groupId] };
+    if (JSON.stringify(mergedSettings) !== JSON.stringify(groups[groupId])) {
+      groups[groupId] = mergedSettings;
+      writeDB(GROUPS_DB, groups);
+    }
   return groups[groupId];
 };
 
