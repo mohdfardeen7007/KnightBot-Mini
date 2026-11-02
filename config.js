@@ -57,8 +57,9 @@ module.exports = {
           detect: false,
           chatbot: false,
           suppress: false, // Members get no command reply; owner and admins still can
-          autosticker: false // Auto-convert images/videos to stickers
-        },
+          autosticker: false, // Auto-convert images/videos to stickers
+          autostickerExcludedNumbers: [] // Numbers that should bypass auto-sticker
+    },
     
     // API Keys (add your own)
     apiKeys: {
