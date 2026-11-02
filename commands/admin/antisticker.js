@@ -1,80 +1,62 @@
 /**
- * Antisticker Command - Toggle antisticker protection with delete/kick options
+ * AutoSticker Command - Enable or disable auto-sticker conversion
  */
 
 const database = require('../../database');
 
 module.exports = {
-  name: 'antisticker',
-  aliases: ['nosticker'],
+  name: 'autosticker',
+  aliases: ['autos', 'asticker'],
   category: 'admin',
-  description: 'Configure antisticker protection (stickers not allowed)',
-  usage: '.antisticker <on/off/set/get>',
+  description: 'Enable or disable auto-sticker conversion (images/videos automatically become stickers)',
+  usage: '.autosticker <on/off>',
   groupOnly: true,
   adminOnly: true,
   botAdminNeeded: true,
-
+  
   async execute(sock, msg, args, extra) {
     try {
       if (!args[0]) {
         const settings = database.getGroupSettings(extra.from);
-        const status = settings.antisticker ? 'ON' : 'OFF';
-        const action = settings.antistickerAction || 'delete';
+        const status = settings.autosticker ? 'ON' : 'OFF';
+        const excludedCount = Array.isArray(settings.autostickerExcludedNumbers)
+          ? settings.autostickerExcludedNumbers.length
+          : 0;
+
         return extra.reply(
-          `🖼️ *Antisticker Status*\n\n` +
+          `📌 *AutoSticker Status*\n\n` +
           `Status: *${status}*\n` +
-          `Action: *${action}*\n\n` +
-          `Stickers will be deleted when sent.\n\n` +
+          `Excluded Numbers: *${excludedCount}*\n\n` +
+          `When enabled, all images and videos sent in this group will automatically be converted to stickers.\n\n` +
           `Usage:\n` +
-          `  .antisticker on\n` +
-          `  .antisticker off\n` +
-          `  .antisticker set delete | kick\n` +
-          `  .antisticker get`
+          `  .autosticker on\n` +
+          `  .autosticker off\n` +
+          `  .autostickerexempt list`
         );
       }
-
+      
       const opt = args[0].toLowerCase();
-
+      
       if (opt === 'on') {
-        if (database.getGroupSettings(extra.from).antisticker) {
-          return extra.reply('*Antisticker is already on*');
+        if (database.getGroupSettings(extra.from).autosticker) {
+          return extra.reply('*AutoSticker is already ON*');
         }
-        database.updateGroupSettings(extra.from, { antisticker: true });
-        return extra.reply('*Antisticker has been turned ON* - Stickers will be deleted.');
+        database.updateGroupSettings(extra.from, { autosticker: true });
+        return extra.reply('✅ *AutoSticker has been turned ON*\n\nAll images and videos will now automatically be converted to stickers!');
       }
-
+      
       if (opt === 'off') {
-        database.updateGroupSettings(extra.from, { antisticker: false });
-        return extra.reply('*Antisticker has been turned OFF*');
-      }
-
-      if (opt === 'set') {
-        if (args.length < 2) {
-          return extra.reply('*Please specify an action: .antisticker set delete | kick*');
+        if (!database.getGroupSettings(extra.from).autosticker) {
+          return extra.reply('*AutoSticker is already OFF*');
         }
-
-        const setAction = args[1].toLowerCase();
-        if (!['delete', 'kick'].includes(setAction)) {
-          return extra.reply('*Invalid action. Choose delete or kick.*');
-        }
-
-        database.updateGroupSettings(extra.from, {
-          antistickerAction: setAction,
-          antisticker: true
-        });
-        return extra.reply(`*Antisticker action set to ${setAction}*`);
+        database.updateGroupSettings(extra.from, { autosticker: false });
+        return extra.reply('❌ *AutoSticker has been turned OFF*');
       }
-
-      if (opt === 'get') {
-        const settings = database.getGroupSettings(extra.from);
-        const status = settings.antisticker ? 'ON' : 'OFF';
-        const action = settings.antistickerAction || 'delete';
-        return extra.reply(`*Antisticker Configuration:*\nStatus: ${status}\nAction: ${action}`);
-      }
-
-      return extra.reply('*Use .antisticker for usage.*');
+      
+      return extra.reply('❌ Invalid option!\nUsage: .autosticker <on/off>');
     } catch (error) {
-      await extra.reply(`❌ Error: ${error.message}`);
+      console.error('[AutoSticker Command Error]:', error);
+      return extra.reply('❌ Error updating autosticker setting.');
     }
   }
 };
