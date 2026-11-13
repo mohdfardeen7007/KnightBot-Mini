@@ -11,7 +11,12 @@
 const fs = require('fs');
 const pako = require('pako');
 const { JSDOM } = require('jsdom');
-const { Canvas } = require('canvas');
+let Canvas = null;
+try {
+  ({ Canvas } = require('canvas'));
+} catch (e) {
+  console.warn('[tgsToWebp] ⚠️  canvas module not available — TGS animated sticker conversion is disabled.');
+}
 const { spawn } = require('child_process');
 const ffmpegPath = require('ffmpeg-static');
 
@@ -55,6 +60,9 @@ function getLottie() {
 }
 
 async function tgsToWebp(tgsBuffer, outPath, tempDir, tag) {
+  if (!Canvas) {
+    throw new Error('canvas module is not installed on this server — TGS animated stickers are not supported. Ask your host to install libcairo/pango or build canvas from source.');
+  }
   return withTgsLock(() => tgsToWebpLocked(tgsBuffer, outPath, tempDir, tag));
 }
 
