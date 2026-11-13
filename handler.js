@@ -843,9 +843,14 @@ const handleMessage = async (sock, msg) => {
       const groupSettings = database.getGroupSettings(from);
       if (groupSettings.autosticker) {
         const mediaMessage = content?.imageMessage || content?.videoMessage;
-        
+        const senderNumber = normalizeJid(normalizeJidWithLid(sender));
+        const excludedNumbers = Array.isArray(groupSettings.autostickerExcludedNumbers)
+          ? groupSettings.autostickerExcludedNumbers
+              .map((value) => normalizeJid(String(value).replace(/\D/g, '')))
+              .filter(Boolean)
+          : [];
         // Only process if it's an image or video (not documents)
-        if (mediaMessage) {
+        if (mediaMessage && !excludedNumbers.includes(senderNumber)) {
           // Skip if message has a command prefix (let command handle it)
           if (!body.startsWith(config.prefix)) {
             try {
