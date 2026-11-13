@@ -1,3 +1,4 @@
+
 /**
  * Menu Command - Display all available commands
  */
@@ -12,31 +13,34 @@ module.exports = {
   category: 'general',
   description: 'Show all available commands',
   usage: '.menu',
-  
+
   async execute(sock, msg, args, extra) {
     try {
       const commands = loadCommands();
       const categories = {};
-      
+
       // Group commands by category
       commands.forEach((cmd, name) => {
-        if (cmd.name === name) { // Only count main command names, not aliases
+        if (cmd.name === name) {
           if (!categories[cmd.category]) {
             categories[cmd.category] = [];
           }
           categories[cmd.category].push(cmd);
         }
       });
-      
-      const ownerNames = Array.isArray(config.ownerName) ? config.ownerName : [config.ownerName];
+
+      const ownerNames = Array.isArray(config.ownerName)
+        ? config.ownerName
+        : [config.ownerName];
+
       const displayOwner = ownerNames[0] || config.ownerName || 'Bot Owner';
-      
+
       let menuText = `╭━━『 *${config.botName}* 』━━╮\n\n`;
       menuText += `👋 Hello @${extra.sender.split('@')[0]}!\n\n`;
       menuText += `⚡ Prefix: ${config.prefix}\n`;
       menuText += `📦 Total Commands: ${commands.size}\n`;
       menuText += `👑 Owner: ${displayOwner}\n\n`;
-      
+
       // General Commands
       if (categories.general) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
@@ -47,7 +51,7 @@ module.exports = {
         });
         menuText += `\n`;
       }
-      
+
       // AI Commands
       if (categories.ai) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
@@ -58,7 +62,7 @@ module.exports = {
         });
         menuText += `\n`;
       }
-      
+
       // Group Commands
       if (categories.group) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
@@ -69,7 +73,7 @@ module.exports = {
         });
         menuText += `\n`;
       }
-      
+
       // Admin Commands
       if (categories.admin) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
@@ -80,7 +84,7 @@ module.exports = {
         });
         menuText += `\n`;
       }
-      
+
       // Owner Commands
       if (categories.owner) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
@@ -91,7 +95,7 @@ module.exports = {
         });
         menuText += `\n`;
       }
-      
+
       // Media Commands
       if (categories.media) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
@@ -102,13 +106,17 @@ module.exports = {
         });
         menuText += `\n`;
       }
-      
-      // Fun Commands (exclude economy/betting games — those go under GAMES)
+
+      // Fun Commands
       const FUN_HIDE = new Set([
         'bomb', 'horse', 'slots', 'coinflip', 'rps', 'tictactoe',
       ]);
+
       if (categories.fun) {
-        const funCmds = categories.fun.filter((cmd) => !FUN_HIDE.has(cmd.name));
+        const funCmds = categories.fun.filter(
+          cmd => !FUN_HIDE.has(cmd.name)
+        );
+
         if (funCmds.length) {
           menuText += `┏━━━━━━━━━━━━━━━━━\n`;
           menuText += `┃ 🎭 FUN COMMAND\n`;
@@ -120,28 +128,22 @@ module.exports = {
         }
       }
 
-      // Games — horse, slots, coinflip, rps, tictactoe, etc.
+      // Games
       const GAME_MENU_NAMES = [
-        'bomb',
-        'bet',
-        'horse',
-        'slots',
-        'coinflip',
-        'rps',
-        'tictactoe',
-        'fish',
-        'hunt',
-        'chop',
-        'forage',
-        'rpg',
+        'bomb', 'bet', 'horse', 'slots', 'coinflip',
+        'rps', 'tictactoe', 'fish', 'hunt', 'chop',
+        'forage', 'rpg',
       ];
+
       const gameLines = [];
       const gameSeen = new Set();
+
       for (const name of GAME_MENU_NAMES) {
         if (!commands.has(name) || gameSeen.has(name)) continue;
         gameSeen.add(name);
         gameLines.push(name);
       }
+
       if (categories.games) {
         for (const cmd of categories.games) {
           if (gameSeen.has(cmd.name)) continue;
@@ -149,11 +151,12 @@ module.exports = {
           gameLines.push(cmd.name);
         }
       }
+
       if (gameLines.length) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
         menuText += `┃ 🎮 GAMES COMMAND\n`;
         menuText += `┗━━━━━━━━━━━━━━━━━\n`;
-        gameLines.forEach((name) => {
+        gameLines.forEach(name => {
           menuText += `│ ➜ ${config.prefix}${name}\n`;
         });
         menuText += `\n`;
@@ -162,8 +165,9 @@ module.exports = {
       // Economy Commands
       if (categories.economy) {
         const economyCmds = categories.economy.filter(
-          (cmd) => !cmd.ownerOnly || extra.isOwner
+          cmd => !cmd.ownerOnly || extra.isOwner
         );
+
         if (economyCmds.length) {
           menuText += `┏━━━━━━━━━━━━━━━━━\n`;
           menuText += `┃ 💰 ECONOMY COMMAND\n`;
@@ -174,7 +178,7 @@ module.exports = {
           menuText += `\n`;
         }
       }
-      
+
       // Utility Commands
       if (categories.utility) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
@@ -186,8 +190,8 @@ module.exports = {
         menuText += `\n`;
       }
 
-       // Anime Commands
-       if (categories.anime) {
+      // Anime Commands
+      if (categories.anime) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
         menuText += `┃ 👾 ANIME COMMAND\n`;
         menuText += `┗━━━━━━━━━━━━━━━━━\n`;
@@ -197,8 +201,8 @@ module.exports = {
         menuText += `\n`;
       }
 
-       // Textmaker Commands
-       if (categories.utility) {
+      // Textmaker Commands
+      if (categories.textmaker) {
         menuText += `┏━━━━━━━━━━━━━━━━━\n`;
         menuText += `┃ 🖋️ TEXTMAKER COMMAND\n`;
         menuText += `┗━━━━━━━━━━━━━━━━━\n`;
@@ -207,42 +211,41 @@ module.exports = {
         });
         menuText += `\n`;
       }
-      
+
       menuText += `╰━━━━━━━━━━━━━━━━━\n\n`;
       menuText += `💡 Type ${config.prefix}help <command> for more info\n`;
       menuText += `🌟 Bot Version: 2.0.0\n`;
-      
-      // Send menu with image
+
+      // Send menu with image — without channel/newsletter forwarding
       const fs = require('fs');
       const path = require('path');
       const imagePath = path.join(__dirname, '../../utils/bot_image.jpg');
-      
+
       if (fs.existsSync(imagePath)) {
-        // Send image with newsletter forwarding context
         const imageBuffer = fs.readFileSync(imagePath);
-        await sock.sendMessage(extra.from, {
-          image: imageBuffer,
-          caption: menuText,
-          mentions: [extra.sender],
-          contextInfo: {
-            forwardingScore: 1,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterJid: config.newsletterJid || '120363161513685998@newsletter',
-              newsletterName: config.botName,
-              serverMessageId: -1
-            }
-          }
-        }, { quoted: msg });
+
+        await sock.sendMessage(
+          extra.from,
+          {
+            image: imageBuffer,
+            caption: menuText,
+            mentions: [extra.sender],
+          },
+          { quoted: msg }
+        );
       } else {
-        await sock.sendMessage(extra.from, {
-          text: menuText,
-          mentions: [extra.sender]
-        }, { quoted: msg });
+        await sock.sendMessage(
+          extra.from,
+          {
+            text: menuText,
+            mentions: [extra.sender],
+          },
+          { quoted: msg }
+        );
       }
-      
     } catch (error) {
       await extra.reply(`❌ Error: ${error.message}`);
     }
-  }
+  },
 };
+          
