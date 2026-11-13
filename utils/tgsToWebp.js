@@ -1,9 +1,14 @@
 /**
- * Fast .tgs → animated WebP (lottie-web + canvas + ffmpeg)
- * Works with modern lottie-web (5.13+) which UMD-exports to module.exports
- * (stock lottie-node still expects window.lottie and breaks).
+ * Fast .tgs → animated WebP (lottie-web + [canvas|svg+sharp] + ffmpeg)
+ * Works with modern lottie-web (5.13+) which UMD-exports to module.exports.
  *
- * Optimizations for panel hosts:
+ * Two render paths:
+ *   1. canvas  — original, fastest. Used when `canvas` native module loads.
+ *   2. svg     — fallback for panels where `canvas.node` is missing.
+ *                lottie-web renders each frame to an inline <svg> in jsdom,
+ *                `sharp` rasterizes the SVG → PNG, ffmpeg muxes to animated WebP.
+ *
+ * Optimizations:
  * - cache lottie-web module (no per-sticker disk read + eval)
  * - pipe PNG frames to ffmpeg stdin (no per-frame disk I/O)
  */
@@ -11,14 +16,22 @@
 const fs = require('fs');
 const pako = require('pako');
 const { JSDOM } = require('jsdom');
+const { spawn } = require('child_process');
+const ffmpegPath = require('ffmpeg-static');
+
 let Canvas = null;
 try {
   ({ Canvas } = require('canvas'));
 } catch (e) {
-  console.warn('[tgsToWebp] ⚠️  canvas module not available — TGS animated sticker conversion is disabled.');
+  console.warn('[tgsToWebp] canvas module not available — using SVG+sharp fallback for TGS.');
 }
-const { spawn } = require('child_process');
-const ffmpegPath = require('ffmpeg-static');
+
+let sharp = null;
+try {
+  sharp = require('sharp');
+} catch (e) {
+  console.warn('[tgsToWebp] sharp module not available.');
+}
 
 const tick = () => new Promise((r) => setImmediate(r));
 
@@ -35,7 +48,6 @@ function withTgsLock(fn) {
 
 /** Load lottie-web once — re-eval per sticker kills weak panels */
 let cachedLottie = null;
-
 function getLottie() {
   if (cachedLottie) return cachedLottie;
 
@@ -59,14 +71,83 @@ function getLottie() {
   return cachedLottie;
 }
 
-async function tgsToWebp(tgsBuffer, outPath, tempDir, tag) {
-  if (!Canvas) {
-    throw new Error('canvas module is not installed on this server — TGS animated stickers are not supported. Ask your host to install libcairo/pango or build canvas from source.');
+/** Create a fresh jsdom + lottie instance for the SVG renderer */
+function createSvgLottie() {
+  const lottiePath = require.resolve('lottie-web/build/player/lottie.js');
+  const { window } = new JSDOM('', { pretendToBeVisual: true });
+  const { document } = window;
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const src = fs.readFileSync(lottiePath, 'utf8');
+  const module = { exports: {} };
+  const exports = module.exports;
+  // eslint-disable-next-line no-eval
+  eval(src);
+
+  const lottie = module.exports;
+  if (!lottie || typeof lottie.loadAnimation !== 'function') {
+    throw new Error('lottie-web failed to expose loadAnimation (svg path)');
   }
-  return withTgsLock(() => tgsToWebpLocked(tgsBuffer, outPath, tempDir, tag));
+  return { lottie, container };
 }
 
-async function tgsToWebpLocked(tgsBuffer, outPath, _tempDir, _tag) {
+const FFMPEG_WEBP_ARGS = (fps, outPath) => [
+  '-y',
+  '-f', 'image2pipe',
+  '-vcodec', 'png',
+  '-framerate', String(fps),
+  '-i', 'pipe:0',
+  '-c:v', 'libwebp',
+  '-preset', 'default',
+  '-loop', '0',
+  '-vsync', '0',
+  '-pix_fmt', 'yuva420p',
+  '-auto-alt-ref', '0',
+  '-quality', '75',
+  '-compression_level', '6',
+  outPath,
+];
+
+function spawnFfmpeg(fps, outPath) {
+  const ff = spawn(ffmpegPath, FFMPEG_WEBP_ARGS(fps, outPath));
+  const errBufs = [];
+  ff.stderr.on('data', (d) => errBufs.push(d));
+  const done = new Promise((resolve, reject) => {
+    ff.on('error', reject);
+    ff.on('close', (code) => {
+      if (code === 0) return resolve();
+      const full = Buffer.concat(errBufs).toString('utf8').replace(/\r/g, '');
+      const lines = full.split('\n').map((l) => l.trim()).filter(Boolean);
+      const useful = lines.filter((l) =>
+        /error|invalid|failed|unknown|cannot|unsupported/i.test(l)
+      );
+      reject(
+        new Error(
+          (useful.length ? useful.slice(-3).join(' | ') : lines.slice(-5).join(' | ')).slice(-400)
+          || `ffmpeg exit ${code}`
+        )
+      );
+    });
+  });
+  return { ff, done };
+}
+
+async function tgsToWebp(tgsBuffer, outPath, tempDir, tag) {
+  if (Canvas) {
+    return withTgsLock(() => tgsToWebpCanvas(tgsBuffer, outPath, tempDir, tag));
+  }
+  if (sharp) {
+    return withTgsLock(() => tgsToWebpSvg(tgsBuffer, outPath, tempDir, tag));
+  }
+  throw new Error(
+    'Neither canvas nor sharp is available on this server — cannot convert TGS animated stickers. ' +
+    'Ask your host to install libcairo/pango build tools for canvas.'
+  );
+}
+
+/* ----------------------------- CANVAS PATH ----------------------------- */
+async function tgsToWebpCanvas(tgsBuffer, outPath, _tempDir, _tag) {
   const data = JSON.parse(pako.inflate(tgsBuffer, { to: 'string' }));
   const canvas = new Canvas(512, 512);
   const ctx = canvas.getContext('2d');
@@ -81,57 +162,7 @@ async function tgsToWebpLocked(tgsBuffer, outPath, _tempDir, _tag) {
   const fps = Math.min(15, srcFps);
   const step = Math.max(1, Math.round(srcFps / fps));
 
-  const ff = spawn(ffmpegPath, [
-    '-y',
-    '-f',
-    'image2pipe',
-    '-vcodec',
-    'png',
-    '-framerate',
-    String(fps),
-    '-i',
-    'pipe:0',
-    '-c:v',
-    'libwebp',
-    '-preset',
-    'default',
-    '-loop',
-    '0',
-    '-vsync',
-    '0',
-    '-pix_fmt',
-    'yuva420p',
-    '-auto-alt-ref',
-    '0',
-    '-quality',
-    '75',
-    '-compression_level',
-    '6',
-    outPath,
-  ]);
-  const errBufs = [];
-  ff.stderr.on('data', (d) => errBufs.push(d));
-  const ffDone = new Promise((resolve, reject) => {
-    ff.on('error', reject);
-    ff.on('close', (code) => {
-      if (code === 0) return resolve();
-      const full = Buffer.concat(errBufs).toString('utf8').replace(/\r/g, '');
-      const lines = full
-        .split('\n')
-        .map((l) => l.trim())
-        .filter(Boolean);
-      const useful = lines.filter((l) =>
-        /error|invalid|failed|unknown|cannot|unsupported/i.test(l)
-      );
-      reject(
-        new Error(
-          (useful.length ? useful.slice(-3).join(' | ') : lines.slice(-5).join(' | ')).slice(
-            -400
-          ) || `ffmpeg exit ${code}`
-        )
-      );
-    });
-  });
+  const { ff, done: ffDone } = spawnFfmpeg(fps, outPath);
 
   let n = 0;
   try {
@@ -148,22 +179,61 @@ async function tgsToWebpLocked(tgsBuffer, outPath, _tempDir, _tag) {
       n++;
     }
   } finally {
-    try {
-      ff.stdin.end();
-    } catch {
-      // ignore
-    }
-    try {
-      anim.destroy();
-    } catch {
-      // ignore
-    }
+    try { ff.stdin.end(); } catch { /* ignore */ }
+    try { anim.destroy(); } catch { /* ignore */ }
   }
 
-  if (n < 2) {
-    ff.kill();
-    throw new Error('TGS rendered too few frames');
+  if (n < 2) { ff.kill(); throw new Error('TGS rendered too few frames'); }
+  await ffDone;
+}
+
+/* --------------------------- SVG + SHARP PATH --------------------------- */
+async function tgsToWebpSvg(tgsBuffer, outPath, _tempDir, _tag) {
+  const data = JSON.parse(pako.inflate(tgsBuffer, { to: 'string' }));
+  const { lottie, container } = createSvgLottie();
+
+  const anim = lottie.loadAnimation({
+    container,
+    animationData: data,
+    renderer: 'svg',
+    rendererSettings: { scale: 1, clearCanvas: true },
+  });
+
+  const srcFps = data.fr || 60;
+  const fps = Math.min(15, srcFps);
+  const step = Math.max(1, Math.round(srcFps / fps));
+
+  const { ff, done: ffDone } = spawnFfmpeg(fps, outPath);
+
+  let n = 0;
+  try {
+    ff.stdin.on('error', () => {});
+    for (let i = data.ip | 0; i < (data.op | 0); i += step) {
+      anim.goToAndStop(i, true);
+      await tick();
+      await tick();
+      await tick();
+      await tick();
+      const svgEl = container.querySelector('svg');
+      if (!svgEl) continue;
+      let svgStr = svgEl.outerHTML;
+      if (!/xmlns=/.test(svgStr)) {
+        svgStr = svgStr.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+      // sharp renders the SVG to a 512x512 PNG (resvg/librsvg backend)
+      const png = await sharp(Buffer.from(svgStr), { density: 300 })
+        .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+      if (!ff.stdin.write(png)) await new Promise((r) => ff.stdin.once('drain', r));
+      n++;
+    }
+  } finally {
+    try { ff.stdin.end(); } catch { /* ignore */ }
+    try { anim.destroy(); } catch { /* ignore */ }
   }
+
+  if (n < 2) { ff.kill(); throw new Error('TGS rendered too few frames'); }
   await ffDone;
 }
 
