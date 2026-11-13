@@ -407,7 +407,17 @@ async function toWaWebpRaw(rawBuffer, ext, tempDir, tag) {
   const out = path.join(tempDir, `${tag}.webp`);
 
   try {
-    if (ext === '.webp') return rawBuffer;
+    if (ext === '.webp') {
+      const looksWebp =
+        rawBuffer.length > 12 &&
+        rawBuffer.toString('latin1', 0, 4) === 'RIFF' &&
+        rawBuffer.toString('latin1', 8, 12) === 'WEBP';
+      if (looksWebp) return rawBuffer;
+      console.warn(
+        `[telepack] ${tag}: .webp failed RIFF check (${rawBuffer.length}b), re-encoding via ffmpeg`
+      );
+      // fall through — ffmpeg decodes by real content; truly broken files count as fail, pack still sends
+    }
 
     if (ext === '.tgs') {
       await Promise.race([
@@ -660,12 +670,17 @@ module.exports = {
         for (let j = 0; j < chunk.length; j++) {
           const s = chunk[j];
           const fileName = safeFileName(j);
-          const branded = await rewriteWebpPackExif(s.webpBuf, {
-            packId,
-            packName: partName,
-            publisher: '',
-            emojis: [s.emoji],
-          });
+          let branded = s.webpBuf;
+          try {
+            branded = await rewriteWebpPackExif(s.webpBuf, {
+              packId,
+              packName: partName,
+              publisher: '',
+              emojis: [s.emoji],
+            });
+          } catch (e) {
+            console.warn(`[telepack] EXIF rewrite failed for sticker #${j + 1}:`, e.message);
+          }
           entries.push({ name: fileName, data: branded });
           metaStickers.push({
             fileName,
