@@ -26,7 +26,7 @@ module.exports = {
         autoSticker: false,
         autoReact: false,
         autoReactMode: 'bot',
-        autoDownload: false,
+        autoDownload: true, // Auto-download social media links (insta/tiktok/pinterest/fb/x) without a command
         
         // Group Settings Defaults
         defaultGroupSettings: {

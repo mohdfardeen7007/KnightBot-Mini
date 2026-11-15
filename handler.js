@@ -19,6 +19,7 @@ const APIs = require('./utils/api');
 const { resolveJoinLeaveTarget, toMention } = require('./utils/funHelpers');
 const { rememberFromMessage, rememberContact } = require('./utils/nameCache');
 const groupStatusTracker = require('./utils/groupStatusTracker');
+const autoDownload = require('./utils/autoDownload');
 
 // Group metadata cache to prevent rate limiting
 const groupMetadataCache = new Map();
@@ -876,6 +877,32 @@ const handleMessage = async (sock, msg) => {
               console.error('[AutoSticker Error]:', error);
               // Continue to normal processing if autosticker fails
             }
+          }
+        }
+      }
+    }
+
+    // AutoDownload feature - auto-download social media links without a command
+    if (!msg.key.fromMe && body && !body.startsWith(config.prefix)) {
+      const match = autoDownload.detectMediaLink(body);
+      if (match) {
+        const groupSettings = isGroup ? database.getGroupSettings(from) : {};
+        if (autoDownload.isEnabled(groupSettings)) {
+          try {
+            const handled = await autoDownload.run(sock, msg, {
+              from,
+              sender,
+              isGroup,
+              groupMetadata,
+              commands,
+              isOwner: isOwner(sender),
+              isAdmin: await isAdmin(sock, sender, from, groupMetadata),
+              isBotAdmin: await isBotAdmin(sock, from, groupMetadata),
+              isMod: isMod(sender),
+            }, match);
+            if (handled) return; // Downloader already replied
+          } catch (error) {
+            console.error('[AutoDownload Error]:', error?.message || error);
           }
         }
       }
