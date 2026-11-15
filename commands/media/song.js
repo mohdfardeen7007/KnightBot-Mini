@@ -275,13 +275,13 @@ module.exports = {
       let downloadSuccess = false;
       let lastFailReason = '';
 
-      // Knight (knightbotapi.stream) first — other hosts are backup only.
+      // EliteProTech (/download/ytmp3) first — verified working; others are backup only.
       const apiMethods = [
+        { name: 'EliteProTech', method: () => APIs.getEliteProTechDownloadByUrl(video.url) },
         { name: 'Knight API', method: () => knightSongDownload(video.url) },
         { name: 'Prince API', method: () => princeSongDownload(video.url) },
         { name: 'Hector', method: () => hectorSongDownload(video.url) },
         { name: 'Prexzy', method: () => prexzySongDownload(video.url) },
-        { name: 'EliteProTech', method: () => APIs.getEliteProTechDownloadByUrl(video.url) },
         { name: 'Yupra', method: () => APIs.getYupraDownloadByUrl(video.url) },
         { name: 'Okatsu', method: () => APIs.getOkatsuDownloadByUrl(video.url) },
         { name: 'Izumi', method: () => APIs.getIzumiDownloadByUrl(video.url) },

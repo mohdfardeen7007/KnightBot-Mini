@@ -307,15 +307,17 @@ const APIs = {
       throw lastError;
     };
     
-    const apiUrl = `https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(youtubeUrl)}&format=mp3`;
+    const apiUrl = `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(youtubeUrl)}`;
     const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-    if (res?.data?.success && res?.data?.downloadURL) {
+    const download = res?.data?.download;
+    if (res?.data?.status && download?.downloadUrl) {
       return {
-        download: res.data.downloadURL,
-        title: res.data.title
+        download: download.downloadUrl,
+        title: download.title || null,
+        thumbnail: download.thumbnail || null
       };
     }
-    throw new Error('EliteProTech ytdown returned no download');
+    throw new Error('EliteProTech ytmp3 returned no download');
   },
   
   getEliteProTechVideoByUrl: async (youtubeUrl) => {
